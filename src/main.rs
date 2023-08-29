@@ -25,7 +25,7 @@ fn launch_command(args: &Args) -> std::io::Result<Child> {
     Command::new("hyprctl")
         .arg("keyword")
         .arg("exec")
-        .args(args.launch.split_whitespace())
+        .arg(&args.launch)
         .spawn()
 }
 
