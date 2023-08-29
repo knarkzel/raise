@@ -1,7 +1,7 @@
 # raise
 
 Run or raise implemented for Hyprland. It will raise window if it exists,
-and cycle to next window if current window is of same class. Otherwise
+or cycle to next window if current window is of same class. Otherwise
 it will launch new window.
 
 ```
@@ -18,8 +18,7 @@ Options:
 
 ## Example configuration
 
-I like having Super + <key> bound to run or raise, and Super + Shift
-+ <key> to launch application regularly.
+I like having <kbd>Super</kbd> + `<key>` bound to run or raise, and <kbd>Super</kbd> + <kbd>Shift</kbd> + `<key>` to launch application regularly.
 
 ```
 bind = SUPER, V, exec, /home/odd/.cargo/bin/raise --class "Alacritty" --launch "alacritty"
