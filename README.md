@@ -16,19 +16,6 @@ Options:
   --help            display usage information
 ```
 
-## Example configuration
-
-I like having <kbd>Super</kbd> + `<key>` bound to run or raise, and <kbd>Super</kbd> + <kbd>Shift</kbd> + `<key>` to launch application regularly.
-
-```
-bind = SUPER, V, exec, /home/odd/.cargo/bin/raise --class "Alacritty" --launch "alacritty"
-bind = SUPER_SHIFT, V, exec, alacritty
-bind = SUPER, C, exec, /home/odd/.cargo/bin/raise --class "firefox" --launch "firefox"
-bind = SUPER_SHIFT, C, exec, firefox
-bind = SUPER, F, exec, /home/odd/.cargo/bin/raise --class "emacs" --launch "emacsclient --create-frame"
-bind = SUPER_SHIFT, F, exec, emacsclient --create-frame
-```
-
 ## Install `raise`
 
 There are multiple ways to install this:
@@ -36,6 +23,19 @@ There are multiple ways to install this:
 1. Go to [releases](https://github.com/knarkzel/raise/releases)
 2. `cargo install --git https://github.com/knarkzel/raise`
 3. Add `github:knarkzel/raise` as a flake to your NixOS configuration
+
+## Example configuration
+
+I like having <kbd>Super</kbd> + `<key>` bound to run or raise, and <kbd>Super</kbd> + <kbd>Shift</kbd> + `<key>` to launch application regularly.
+
+```
+bind = SUPER, V, exec, raise --class "Alacritty" --launch "alacritty"
+bind = SUPER_SHIFT, V, exec, alacritty
+bind = SUPER, C, exec, raise --class "firefox" --launch "firefox"
+bind = SUPER_SHIFT, C, exec, firefox
+bind = SUPER, F, exec, raise --class "emacs" --launch "emacsclient --create-frame"
+bind = SUPER_SHIFT, F, exec, emacsclient --create-frame
+```
 
 ## How to find class?
 
