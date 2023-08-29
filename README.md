@@ -29,14 +29,14 @@ bind = SUPER, F, exec, /home/odd/.cargo/bin/raise --class "emacs" --launch "emac
 bind = SUPER_SHIFT, F, exec, emacsclient --create-frame
 ```
 
-## How to find class?
-
-Run `hyprctl clients` while window is open, and look for `class: <class>`.
-
-## How to install this?
+## Install `raise`
 
 There are multiple ways to install this:
 
 1. Go to [releases](https://github.com/knarkzel/raise/releases)
 2. `cargo install --git https://github.com/knarkzel/raise`
 3. Add `github:knarkzel/raise` as a flake to your NixOS configuration
+
+## How to find class?
+
+Run `hyprctl clients` while window is open, and look for `class: <class>`.
