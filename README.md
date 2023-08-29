@@ -1,14 +1,14 @@
 # raise
 
 Run or raise implemented for Hyprland. It will raise window if it exists,
-or cycle to next window if current window is of same class. Otherwise
+or cycle to next window if current window matches class to focus. Otherwise
 it will launch new window.
 
 ```
 $ raise
 Usage: raise -c <class> -e <launch>
 
-Raise window if it exists, otherwise create new instance.
+Raise window if it exists, otherwise launch new window.
 
 Options:
   -c, --class       class to focus
@@ -31,4 +31,12 @@ bind = SUPER_SHIFT, F, exec, emacsclient --create-frame
 
 ## How to find class?
 
-Run `hyprcl clients` while window is open, and look for `class: <class>`.
+Run `hyprctl clients` while window is open, and look for `class: <class>`.
+
+## How to install this?
+
+There are multiple ways to install this:
+
+1. Go to [releases](https://github.com/knarkzel/raise/releases)
+2. `cargo install --git https://github.com/knarkzel/raise`
+3. Add `github:knarkzel/raise` as a flake to your NixOS configuration

@@ -4,7 +4,7 @@ use miniserde::{json, Deserialize};
 use std::process::{Child, Command};
 
 #[derive(FromArgs)]
-/// Raise window if it exists, otherwise create new instance.
+/// Raise window if it exists, otherwise launch new window.
 struct Args {
     /// class to focus
     #[argh(option, short = 'c')]
