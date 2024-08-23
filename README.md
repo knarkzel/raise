@@ -24,6 +24,17 @@ There are multiple ways to install this:
 2. `cargo install --git https://github.com/knarkzel/raise`
 3. Add `github:knarkzel/raise` as a flake to your NixOS configuration
 
+For NixOS, add raise to your flake inputs:
+
+```nix
+inputs = {
+  nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  raise.url = "github:knarkzel/raise";
+};
+```
+
+Then add it to your system, for instance: `environment.systemPackages = [raise.defaultPackage.x86_64-linux];`
+
 ## Example configuration
 
 I like having <kbd>Super</kbd> + `<key>` bound to run or raise, and <kbd>Super</kbd> + <kbd>Shift</kbd> + `<key>` to launch application regularly.
