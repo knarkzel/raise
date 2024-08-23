@@ -28,7 +28,6 @@ For NixOS, add raise to your flake inputs:
 
 ```nix
 inputs = {
-  nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   raise.url = "github:knarkzel/raise";
 };
 ```
