@@ -123,6 +123,9 @@ windowrulev2 = tag, files, class:^(thunar|Thunar|dolphin|Dolphin|nemo|Nemo|nauti
 # Media / Video
 windowrulev2 = tag, vid, class:^(mpv|vlc|celluloid|Celluloid)$
 
+# Image viewers
+windowrulev2 = tag, img, class:^(swayimg|imv|feh)$
+
 # Music
 windowrulev2 = tag, music, class:^(spotify|Spotify|ncspot)$
 
@@ -134,6 +137,15 @@ windowrulev2 = tag, mail, class:^(thunderbird|Thunderbird)$
 
 # Graphics
 windowrulev2 = tag, design, class:^(gimp|Gimp|inkscape|Inkscape|krita|Krita)$
+
+# Audio tools
+windowrulev2 = tag, audio, class:^(qpwgraph|Carla2|REAPER)$
+
+# Reading / Documents
+windowrulev2 = tag, read, class:^(org\.pwmt\.zathura|zathura)$
+
+# Gaming
+windowrulev2 = tag, games, class:^(steam|lutris)$
 RULES
 done
 
@@ -147,10 +159,16 @@ map_class_to_tag() {
     Slack|slack|Discord|discord|TelegramDesktop|telegram-desktop|Element*) echo chat ;;
     thunar|Thunar|dolphin|Dolphin|nemo|Nemo|nautilus|pcmanfm) echo files ;;
     mpv|vlc|celluloid|Celluloid) echo vid ;;
+    swayimg|imv|feh) echo img ;;
     spotify|Spotify|ncspot) echo music ;;
     obsidian|Obsidian|logseq|Logseq|Zettlr) echo notes ;;
     thunderbird|Thunderbird) echo mail ;;
     gimp|Gimp|inkscape|Inkscape|krita|Krita) echo design ;;
+    steam|lutris) echo games ;;
+    qpwgraph|Carla2|REAPER) echo audio ;;
+    org.pwmt.zathura|zathura) echo read ;;
+    term) echo term ;;
+    nwim) echo nwim ;;
     *) return 1 ;;
   esac
 }
