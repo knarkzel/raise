@@ -86,11 +86,21 @@ else
   echo "Note: flake.nix not found; skipping fork update." >&2
 fi
 
-# 2) Ensure a tags rules file exists with sensible defaults
-RULES_DIR="modules/user/gui/hypr/conf/rules"
-RULES_FILE="$RULES_DIR/tags.conf"
-mkdir -p "$RULES_DIR"
-cat > "$RULES_FILE" <<'RULES'
+# 2) Ensure a tags rules file exists with sensible defaults (support multiple hypr roots)
+# Discover hypr roots
+mapfile -t HYPR_ROOTS < <(find . -type d -path "*/modules/user/gui/hypr" 2>/dev/null | sed 's#^\./##')
+if [[ ${#HYPR_ROOTS[@]} -eq 0 ]]; then
+  mapfile -t HYPR_ROOTS < <(find . -type d -path "*/nix/.config/home-manager/modules/user/gui/hypr" 2>/dev/null | sed 's#^\./##')
+fi
+if [[ ${#HYPR_ROOTS[@]} -eq 0 ]]; then
+  echo "Warning: Could not locate modules/user/gui/hypr in repo; continuing with flake pin update only." >&2
+fi
+
+for HYPR_ROOT in "${HYPR_ROOTS[@]}"; do
+  RULES_DIR="${HYPR_ROOT}/conf/rules"
+  RULES_FILE="$RULES_DIR/tags.conf"
+  mkdir -p "$RULES_DIR"
+  cat > "$RULES_FILE" <<'RULES'
 # Auto-assigned tags for common applications
 # Edit to taste. Each rule applies a tag based on window class.
 
@@ -124,6 +134,7 @@ windowrulev2 = tag, mail, class:^(thunderbird|Thunderbird)$
 # Graphics
 windowrulev2 = tag, design, class:^(gimp|Gimp|inkscape|Inkscape|krita|Krita)$
 RULES
+done
 
 # 3) Replace raise usages to prefer --tag where mapping is obvious
 # Known mapping pairs for common apps (class -> tag)
@@ -146,8 +157,9 @@ map_class_to_tag() {
 changed_files=()
 
 # Update specific known bindings file if present
-if [[ -f modules/user/gui/hypr/conf/bindings/apps.conf ]]; then
-  file=modules/user/gui/hypr/conf/bindings/apps.conf
+for HYPR_ROOT in "${HYPR_ROOTS[@]}"; do
+  file="${HYPR_ROOT}/conf/bindings/apps.conf"
+  [[ -f "$file" ]] || continue
   tmp=$(mktemp)
   while IFS= read -r line; do
     if [[ "$line" =~ raise[[:space:]].*--class[[:space:]]\"([^\"]+)\" ]]; then
@@ -171,43 +183,64 @@ if [[ -f modules/user/gui/hypr/conf/bindings/apps.conf ]]; then
   else
     rm -f "$tmp"
   fi
-fi
+done
 
 # Broad pass across hypr conf tree: best-effort replacements
-while IFS= read -r -d '' f; do
-  tmp=$(mktemp)
-  modified=0
-  while IFS= read -r line; do
-    if [[ "$line" =~ raise[[:space:]].*--class[[:space:]]\"([^\"]+)\" ]]; then
-      klass=${BASH_REMATCH[1]}
-      if tag=$(map_class_to_tag "$klass"); then
-        line=$(echo "$line" | sed -E "s/--class \"[^\"]+\"/--tag ${tag}/g")
-        modified=1
+for HYPR_ROOT in "${HYPR_ROOTS[@]}"; do
+  while IFS= read -r -d '' f; do
+    tmp=$(mktemp)
+    modified=0
+    while IFS= read -r line; do
+      if [[ "$line" =~ raise[[:space:]].*--class[[:space:]]\"([^\"]+)\" ]]; then
+        klass=${BASH_REMATCH[1]}
+        if tag=$(map_class_to_tag "$klass"); then
+          line=$(echo "$line" | sed -E "s/--class \"[^\"]+\"/--tag ${tag}/g")
+          modified=1
+        fi
       fi
-    fi
-    if [[ "$line" =~ --match[[:space:]]class=([^[:space:]]+) ]]; then
-      klass=${BASH_REMATCH[1]}
-      if tag=$(map_class_to_tag "$klass"); then
-        line=$(echo "$line" | sed -E "s/--match class=[^[:space:]]+/--tag ${tag}/g")
-        modified=1
+      if [[ "$line" =~ --match[[:space:]]class=([^[:space:]]+) ]]; then
+        klass=${BASH_REMATCH[1]}
+        if tag=$(map_class_to_tag "$klass"); then
+          line=$(echo "$line" | sed -E "s/--match class=[^[:space:]]+/--tag ${tag}/g")
+          modified=1
+        fi
       fi
+      echo "$line" >> "$tmp"
+    done < "$f"
+    if [[ $modified -eq 1 ]]; then
+      mv "$tmp" "$f"
+      changed_files+=("$f")
+    else
+      rm -f "$tmp"
     fi
-    echo "$line" >> "$tmp"
-  done < "$f"
-  if [[ $modified -eq 1 ]]; then
-    mv "$tmp" "$f"
-    changed_files+=("$f")
-  else
-    rm -f "$tmp"
-  fi
-done < <(find modules/user/gui/hypr -type f -name '*.conf' -print0 2>/dev/null)
+  done < <(find "$HYPR_ROOT" -type f -name '*.conf' -print0 2>/dev/null)
+done
 
 # Add a canonical example: bind for web tag with $browser
-if [[ -f modules/user/gui/hypr/conf/bindings/apps.conf ]]; then
-  if ! rg -n "raise --tag web" modules/user/gui/hypr/conf/bindings/apps.conf >/dev/null 2>&1; then
-    echo "bind = \$M4, w, exec, raise --tag web --launch \$browser" >> modules/user/gui/hypr/conf/bindings/apps.conf
-    changed_files+=("modules/user/gui/hypr/conf/bindings/apps.conf")
+for HYPR_ROOT in "${HYPR_ROOTS[@]}"; do
+  file="${HYPR_ROOT}/conf/bindings/apps.conf"
+  [[ -f "$file" ]] || continue
+  if ! rg -n "raise --tag web" "$file" >/dev/null 2>&1; then
+    echo "bind = \$M4, w, exec, raise --tag web --launch \$browser" >> "$file"
+    changed_files+=("$file")
   fi
+done
+
+# 3b) Update Home Manager prewarm execs to use --tag where possible
+if [[ -f nix/.config/home-manager/home.nix ]]; then
+  sed -i -E \
+    -e "s#raise --class 'term'#raise --tag term#g" \
+    -e "s#raise --class '\(one\\.ablaze\\.floorp\|floorp\)'#raise --tag web#g" \
+    -e "s#raise --class 'org\.nicotine_plus\.Nicotine'#raise --tag music#g" \
+    -e "s#raise --class 'Obsidian'#raise --tag notes#g" \
+    nix/.config/home-manager/home.nix || true
+  changed_files+=("nix/.config/home-manager/home.nix")
+fi
+
+# 3c) Stop shadowing system raise: rename local script to raise_class if present
+if [[ -f nix/.config/home-manager/modules/user/local-bin/default.nix ]]; then
+  sed -i -E "s#name = \"raise\";#name = \"raise_class\";#" nix/.config/home-manager/modules/user/local-bin/default.nix || true
+  changed_files+=("nix/.config/home-manager/modules/user/local-bin/default.nix")
 fi
 
 # Commit staged changes
@@ -237,7 +270,11 @@ echo "\nRemaining occurrences of class-based raise (review manually):" >&2
 rg -n "raise.*(--class|--match[[:space:]]class=)" -S || true
 
 # Hint to ensure rules are sourced
-echo "\nEnsure your Hypr config sources the tags rules (if not already):" >&2
-echo "  source = $RULES_FILE" >&2
+if [[ ${#HYPR_ROOTS[@]} -gt 0 ]]; then
+  echo "\nEnsure your Hypr config sources the tags rules (if not already):" >&2
+  for HYPR_ROOT in "${HYPR_ROOTS[@]}"; do
+    echo "  source = ~/.config/hypr/conf/rules/tags.conf (root: $HYPR_ROOT)" >&2
+  done
+fi
 
 popd >/dev/null
