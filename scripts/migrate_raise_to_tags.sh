@@ -218,5 +218,12 @@ echo "- If using flakes, run: nix flake update --update-input raise" >&2
 echo "- Reload Hyprland: hyprctl reload" >&2
 echo "- Test: raise --tag web --launch \$browser" >&2
 
-popd >/dev/null
+# Report any remaining class-based usages for manual follow-up
+echo "\nRemaining occurrences of class-based raise (review manually):" >&2
+rg -n "raise.*(--class|--match[[:space:]]class=)" -S || true
 
+# Hint to ensure rules are sourced
+echo "\nEnsure your Hypr config sources the tags rules (if not already):" >&2
+echo "  source = $RULES_FILE" >&2
+
+popd >/dev/null
