@@ -17,7 +17,7 @@ set -euo pipefail
 #
 
 REPO=""
-FORK_URL=""
+FORK_URL_RAW=""
 DO_COMMIT=1
 
 die() { echo "Error: $*" >&2; exit 1; }
@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
     -r|--repo)
       REPO="$2"; shift 2;;
     -u|--fork-url)
-      FORK_URL="$2"; shift 2;;
+      FORK_URL_RAW="$2"; shift 2;;
     --no-commit)
       DO_COMMIT=0; shift;;
     -h|--help)
@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$REPO" ]] || die "--repo is required"
-[[ -n "$FORK_URL" ]] || die "--fork-url is required (e.g. github:neg-serg/raise)"
+[[ -n "$FORK_URL_RAW" ]] || die "--fork-url is required (e.g. github:neg-serg/raise or https://github.com/neg-serg/raise)"
 
 [[ -d "$REPO" ]] || die "Repo path not found: $REPO"
 
@@ -47,6 +47,12 @@ if [[ ! -d "$REPO/.git" ]]; then
 fi
 
 pushd "$REPO" >/dev/null
+
+# Normalize fork url to flake-friendly form if plain https was provided
+FORK_URL="$FORK_URL_RAW"
+if [[ "$FORK_URL_RAW" =~ ^https://github.com/([^/]+)/([^/]+?)(\.git)?$ ]]; then
+  FORK_URL="github:${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+fi
 
 # Create branch if not on a feature branch
 current_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -71,6 +77,9 @@ if [[ -f flake.nix ]]; then
       in_inputs && /\}/ {in_inputs=0}
     ' flake.nix > flake.nix.tmp && mv flake.nix.tmp flake.nix
   fi
+
+  # Remove explicit pins in flake.nix if present (rev/ref)
+  sed -i -E "/inputs\.raise\.(rev|ref)\s*=\s*\".*\";$/d" flake.nix || true
 
   # Suggest updating lock file; we only stage flake.nix here.
 else
@@ -211,6 +220,11 @@ if [[ $DO_COMMIT -eq 1 ]]; then
 - Add rules to auto-assign tags by class (web, term, code, chat, etc.)
 - Point flake input 'raise' to ${FORK_URL} (update lock separately)"
   fi
+fi
+
+# Try to update lock for raise input if nix is available
+if command -v nix >/dev/null 2>&1 && [[ -f flake.nix ]]; then
+  nix flake update --update-input raise || true
 fi
 
 echo "Migration finished. Next steps:" >&2
