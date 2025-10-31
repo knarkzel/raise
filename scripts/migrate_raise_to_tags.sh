@@ -110,6 +110,8 @@ windowrulev2 = tag, web, class:^(firefox|Firefox|floorp|Floorp|Brave.*|Chromium|
 
 # Terminals
 windowrulev2 = tag, term, class:^(Alacritty|alacritty|kitty|Kitty|WezTerm|wezterm|foot)$
+windowrulev2 = tag, term, class:^(term)$
+windowrulev2 = tag, nwim, class:^(nwim)$
 
 # Editors / IDEs
 windowrulev2 = tag, code, class:^(code|Code|codium|VSCodium|jetbrains-.*|Idea|CLion|PyCharm|GoLand|WebStorm|Rider)$
@@ -146,6 +148,12 @@ windowrulev2 = tag, read, class:^(org\.pwmt\.zathura|zathura)$
 
 # Gaming
 windowrulev2 = tag, games, class:^(steam|lutris)$
+
+# OBS Studio
+windowrulev2 = tag, obs, class:^(obs)$
+
+# Keyboard manager
+windowrulev2 = tag, kb, class:^(Bazecor)$
 RULES
 done
 
