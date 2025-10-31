@@ -66,7 +66,8 @@ fi
 if [[ -f flake.nix ]]; then
   # Replace inputs.raise.url to provided fork URL; add it if missing
   if rg -n "inputs\.raise\.url" -S >/dev/null 2>&1; then
-    sed -i -E "s#(inputs\.raise\.url\s*=\s*").*(";)#\1${FORK_URL}\2#" flake.nix || true
+    # Replace the entire value conservatively without grouping to avoid shell parsing quirks
+    sed -i -E "s|inputs\.raise\.url\s*=\s*\"[^\"]*\";|inputs.raise.url = \"${FORK_URL}\";|" flake.nix || true
   else
     # Try to inject under inputs = { ... } block
     awk -v url="$FORK_URL" '
