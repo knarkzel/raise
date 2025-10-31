@@ -127,7 +127,7 @@ windowrulev2 = tag, vid, class:^(mpv|vlc|celluloid|Celluloid)$
 windowrulev2 = tag, img, class:^(swayimg|imv|feh)$
 
 # Music
-windowrulev2 = tag, music, class:^(spotify|Spotify|ncspot)$
+windowrulev2 = tag, music, class:^(spotify|Spotify|ncspot|org\.nicotine_plus\.Nicotine)$
 
 # Notes / Knowledge
 windowrulev2 = tag, notes, class:^(obsidian|Obsidian|logseq|Logseq|Zettlr)$
@@ -161,6 +161,7 @@ map_class_to_tag() {
     mpv|vlc|celluloid|Celluloid) echo vid ;;
     swayimg|imv|feh) echo img ;;
     spotify|Spotify|ncspot) echo music ;;
+    org.nicotine_plus.Nicotine) echo music ;;
     obsidian|Obsidian|logseq|Logseq|Zettlr) echo notes ;;
     thunderbird|Thunderbird) echo mail ;;
     gimp|Gimp|inkscape|Inkscape|krita|Krita) echo design ;;
@@ -169,6 +170,8 @@ map_class_to_tag() {
     org.pwmt.zathura|zathura) echo read ;;
     term) echo term ;;
     nwim) echo nwim ;;
+    Bazecor) echo kb ;;
+    obs) echo obs ;;
     *) return 1 ;;
   esac
 }
