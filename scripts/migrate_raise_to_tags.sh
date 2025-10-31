@@ -205,10 +205,15 @@ for HYPR_ROOT in "${HYPR_ROOTS[@]}"; do
         line=$(echo "$line" | sed -E "s/--match class=[^[:space:]]+/--tag ${tag}/g")
       fi
     fi
+    # Convert browser regex matcher to --tag web when launching $browser
+    if [[ "$line" =~ --match[[:space:]]class:regex="[^"]+" ]] && [[ "$line" =~ --launch[[:space:]]\$browser ]]; then
+      line=$(echo "$line" | sed -E 's/--match class:regex="[^"]+"/--tag web/g')
+    fi
     echo "$line" >> "$tmp"
   done < "$file"
   if ! cmp -s "$file" "$tmp"; then
-    mv "$tmp" "$file"
+    # De-duplicate identical lines (keep first occurrence)
+    awk '!seen[$0]++' "$tmp" > "$file"
     changed_files+=("$file")
   else
     rm -f "$tmp"
