@@ -23,7 +23,7 @@ struct Client {
 
 fn launch_command(args: &Args) -> std::io::Result<Child> {
     Command::new("niri")
-        .args(["msg", "action", "spawn", "--", &args.launch])
+        .args(["msg", "action", "spawn-sh", "--", &args.launch])
         .spawn()
 }
 
