@@ -1,12 +1,12 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use argh::FromArgs;
-use miniserde::{json, Deserialize};
+use serde::Deserialize;
 use std::process::{Child, Command};
 
 #[derive(FromArgs)]
 /// Raise window if it exists, otherwise launch new window.
 struct Args {
-    /// class to focus
+    /// app id to focus
     #[argh(option, short = 'c')]
     class: String,
 
@@ -17,35 +17,30 @@ struct Args {
 
 #[derive(Deserialize, Debug)]
 struct Client {
-    class: String,
-    address: String,
+    app_id: Option<String>,
+    id: u64,
 }
 
 fn launch_command(args: &Args) -> std::io::Result<Child> {
-    Command::new("hyprctl")
-        .arg("keyword")
-        .arg("exec")
-        .arg(&args.launch)
+    Command::new("niri")
+        .args(["msg", "action", "spawn", "--", &args.launch])
         .spawn()
 }
 
-fn focus_window(address: &str) -> std::io::Result<Child> {
-    Command::new("hyprctl")
-        .arg("dispatch")
-        .arg("focuswindow")
-        .arg(format!("address:{address}"))
+fn focus_window(id: u64) -> std::io::Result<Child> {
+    Command::new("niri")
+        .args(["msg", "action", "focus-window", "--id", &id.to_string()])
         .spawn()
 }
 
 fn get_current_matching_window(class: &str) -> Result<Client> {
-    let output = Command::new("hyprctl")
-        .arg("activewindow")
-        .arg("-j")
+    let output = Command::new("niri")
+        .args(["msg", "--json", "focused-window"])
         .output()?;
     let stdout = String::from_utf8(output.stdout)
-        .context("Reading `hyprctl currentwindow -j` to string failed")?;
-    let client = json::from_str::<Client>(&stdout)?;
-    if class == &client.class {
+        .context("Reading `niri msg focused-window` to string failed")?;
+    let client: Client = serde_json::from_str(&stdout).context("Failed to parse focused window")?;
+    if client.app_id.as_deref() == Some(class) {
         Ok(client)
     } else {
         bail!("Current window is not of same class")
@@ -53,47 +48,40 @@ fn get_current_matching_window(class: &str) -> Result<Client> {
 }
 
 fn main() -> Result<()> {
-    // Get arguments
     let args: Args = argh::from_env();
 
-    // Launch hyprctl
-    let json = Command::new("hyprctl").arg("clients").arg("-j").output();
+    let json = Command::new("niri")
+        .args(["msg", "--json", "windows"])
+        .output();
     match json {
         Ok(output) if output.status.success() => {
-            // Deserialize output
             let stdout = String::from_utf8(output.stdout)
-                .context("Reading `hyprctl clients -j` to string failed")?;
-            let clients = json::from_str::<Vec<Client>>(&stdout)
-                .context("Failed to parse `hyprctl clients -j`")?;
+                .context("Reading `niri msg windows` to string failed")?;
+            let clients: Vec<Client> =
+                serde_json::from_str(&stdout).context("Failed to parse `niri msg windows`")?;
 
-            // Filter matching clients
             let candidates = clients
                 .iter()
-                .filter(|client| client.class == args.class)
+                .filter(|client| client.app_id.as_deref() == Some(&args.class))
                 .collect::<Vec<_>>();
-            
-            // Are we currently focusing a window of this class?
-            if let Ok(Client { address, .. }) = get_current_matching_window(&args.class) {
-                // Focus next window based on first
-                if let Some(index) = candidates.iter().position(|client| client.address == address) {
+
+            if let Ok(Client { id, .. }) = get_current_matching_window(&args.class) {
+                if let Some(index) = candidates.iter().position(|client| client.id == id) {
                     if let Some(next_client) = candidates.iter().cycle().skip(index + 1).next() {
-                        focus_window(&next_client.address)?;
+                        focus_window(next_client.id)?;
                     }
                 }
             } else {
-                // Focus first window, otherwise launch command
                 match candidates.first() {
-                    Some(Client { address, .. }) => focus_window(address)?,
+                    Some(client) => focus_window(client.id)?,
                     _ => launch_command(&args)?,
                 };
             }
         }
-        // If hyprctl fails, just launch it
         _ => {
             launch_command(&args)?;
         }
     }
 
-    // Success
     Ok(())
 }
