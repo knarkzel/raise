@@ -210,16 +210,16 @@ struct Client {
 }
 
 fn launch_command(args: &Args) -> std::io::Result<Child> {
-    Command::new("hyprctl")
-        .arg("dispatch")
-        .arg(format!("hl.dsp.exec_cmd(\"{}\")", args.launch))
+    Command::new("sh")
+        .arg("-c")
+        .arg(&args.launch)
         .spawn()
 }
 
 fn focus_window(address: &str) -> std::io::Result<Child> {
     Command::new("hyprctl")
         .arg("dispatch")
-        .arg(format!("hl.dsp.focus({{window=\"address:{address}\"}})"))
+        .arg(format!(r#"hl.dsp.focus({{window = "address:{address}"}})"#))
         .spawn()
 }
 
