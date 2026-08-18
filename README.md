@@ -1,5 +1,8 @@
 # raise
 
+Fork of [lambdachad/raise](https://github.com/lambdachad/raise) with support
+for Hyprland 0.55+ dispatch syntax and tag-based launch rules.
+
 Run or raise implemented for Hyprland. It will raise window if it exists,
 or cycle to next window if current window matches class to focus. Otherwise
 it will launch new window.
