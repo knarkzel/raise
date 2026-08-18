@@ -10,3 +10,4 @@ strip = true
 argh = "0.1"
 anyhow = "1.0"
 miniserde = "0.1"
+regex = "1"
