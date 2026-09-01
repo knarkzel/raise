@@ -21,20 +21,60 @@ struct Client {
     address: String,
 }
 
-fn launch_command(args: &Args) -> std::io::Result<Child> {
-    Command::new("hyprctl")
-        .arg("keyword")
-        .arg("exec")
-        .arg(&args.launch)
-        .spawn()
+enum ConfigType {
+    Hyprlang,
+    Lua,
 }
 
-fn focus_window(address: &str) -> std::io::Result<Child> {
-    Command::new("hyprctl")
-        .arg("dispatch")
-        .arg("focuswindow")
-        .arg(format!("address:{address}"))
-        .spawn()
+fn config_type() -> ConfigType {
+    let output = Command::new("hyprctl")
+        .arg("eval")
+        .arg("print('lua')")
+        .output();
+
+    if let Ok(output) = output {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let text = format!("{stdout}{stderr}");
+        if text.contains("eval is only supported with the lua config manager") {
+            return ConfigType::Hyprlang;
+        }
+        if output.status.success() {
+            return ConfigType::Lua;
+        }
+    }
+
+    ConfigType::Hyprlang
+}
+
+fn lua_string(s: &str) -> String {
+    format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+fn launch_command(args: &Args, config_type: &ConfigType) -> std::io::Result<Child> {
+    let mut command = Command::new("hyprctl");
+    match config_type {
+        ConfigType::Hyprlang => command.arg("keyword").arg("exec").arg(&args.launch),
+        ConfigType::Lua => command
+            .arg("dispatch")
+            .arg(format!("hl.dsp.exec_cmd({})", lua_string(&args.launch))),
+    }
+    .spawn()
+}
+
+fn focus_window(address: &str, config_type: &ConfigType) -> std::io::Result<Child> {
+    let mut command = Command::new("hyprctl");
+    match config_type {
+        ConfigType::Hyprlang => command
+            .arg("dispatch")
+            .arg("focuswindow")
+            .arg(format!("address:{address}")),
+        ConfigType::Lua => command.arg("dispatch").arg(format!(
+            "hl.dsp.focus({{ window = {} }})",
+            lua_string(&format!("address:{address}"))
+        )),
+    }
+    .spawn()
 }
 
 fn get_current_matching_window(class: &str) -> Result<Client> {
@@ -55,6 +95,7 @@ fn get_current_matching_window(class: &str) -> Result<Client> {
 fn main() -> Result<()> {
     // Get arguments
     let args: Args = argh::from_env();
+    let config_type = config_type();
 
     // Launch hyprctl
     let json = Command::new("hyprctl").arg("clients").arg("-j").output();
@@ -77,20 +118,20 @@ fn main() -> Result<()> {
                 // Focus next window based on first
                 if let Some(index) = candidates.iter().position(|client| client.address == address) {
                     if let Some(next_client) = candidates.iter().cycle().skip(index + 1).next() {
-                        focus_window(&next_client.address)?;
+                        focus_window(&next_client.address, &config_type)?;
                     }
                 }
             } else {
                 // Focus first window, otherwise launch command
                 match candidates.first() {
-                    Some(Client { address, .. }) => focus_window(address)?,
-                    _ => launch_command(&args)?,
+                    Some(Client { address, .. }) => focus_window(address, &config_type)?,
+                    _ => launch_command(&args, &config_type)?,
                 };
             }
         }
         // If hyprctl fails, just launch it
         _ => {
-            launch_command(&args)?;
+            launch_command(&args, &config_type)?;
         }
     }
 
